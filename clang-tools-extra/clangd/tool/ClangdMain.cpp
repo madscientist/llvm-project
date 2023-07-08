@@ -982,6 +982,22 @@ clangd accepts flags on the commandline, and in the CLANGD_FLAGS environment var
     Opts.Encoding = ForceOffsetEncoding;
   setIncludeCleanerAnalyzesStdlib(IncludeCleanerStdlib);
 
+  constexpr const char *ResourceEnvVar = "CLANGD_RESOURCE_DIR";
+  std::string Resources;
+  if (!::getenv(ResourceEnvVar)) {
+    if (Opts.ResourceDir)
+      Resources = *Opts.ResourceDir;
+    if (Resources.empty()) {
+      static int StaticForMainAddr;
+      Resources = CompilerInvocation::GetResourcesPath(
+          "clangd", (void *)&StaticForMainAddr);
+    }
+    if (!Resources.empty()) {
+      ::setenv(ResourceEnvVar, Resources.c_str(), 1);
+      log("Setting {0} to \"{1}\"", ResourceEnvVar, Resources);
+    }
+  }
+
   if (CheckFile.getNumOccurrences()) {
     llvm::SmallString<256> Path;
     if (auto Error =
